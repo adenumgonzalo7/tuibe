@@ -1,0 +1,135 @@
+<?php
+$this->headTitle('Step 1 - Search a flight');
+
+$form->get('from')->setAttributes([
+    'class' => 'form-control',
+]);
+
+$form->get('to')->setAttributes([
+    'class' => 'form-control',
+]);
+
+$form->get('submit')->setAttributes(array('class' => 'btn btn-primary'));
+
+$form->prepare();
+?>
+
+<h1>Flightt Reservation - Step 1 - Search a flight</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <?= $this->form()->openTag($form); ?>
+
+        <div class="form-group">
+           
+            <?= $this->formElement($form->get('oneway_or_roundtrip')); ?>
+            <?= $this->formElementErrors($form->get('oneway_or_roundtrip')); ?>                              
+        </div>        
+        
+        <div class="form-group">
+            <?php //$this->formLabel($form->get('billing_plan')); ?>
+            <?= $this->formElement($form->get('from')); ?>
+            <?= $this->formElementErrors($form->get('from')); ?>                              
+        </div>
+
+        <div class="form-group">
+            <?php //$this->formLabel($form->get('payment_method')); ?>
+            <?= $this->formElement($form->get('to')); ?>
+            <?= $this->formElementErrors($form->get('to')); ?>                              
+        </div>
+
+        <div class="form-group">
+            <?= $this->formElement($form->get('submit')); ?>
+        </div>
+
+        <?= $this->formElement($form->get('csrf')); ?>
+
+        <?= $this->form()->closeTag(); ?>
+    </div>    
+</div>   
+
+
+<script> 
+$(document).ready(function(){
+    var idDropdownFrom = 'from';
+    var idDropdownTo = 'to';
+    var nameRadiobuttonTypeTrip = 'oneway_or_roundtrip';
+    var radiobuttonTypeTripValueRound = '1';
+    var radiobuttonTypeTripValueOne = '2';
+
+
+    var data={};
+    data.id = "bye";
+    $.ajax({
+        type : 'POST',
+        url  :'flightreservation/ajax',      
+        data :data,
+        success: function (data) {
+            console.log(data);
+            //alert(data);
+        },
+        error: function (data) {
+            console.log(data);
+
+        }
+    });
+    
+    
+    // change Radiobutton - One way / Round Trip
+    $('input[type=radio][name='+nameRadiobuttonTypeTrip+']').change(function() {
+
+        if (this.value == radiobuttonTypeTripValueRound) { // round
+            setOptionValueElementById(idDropdownFrom, '');
+            setOptionValueElementById(idDropdownTo, '');
+        }
+        else if (this.value == radiobuttonTypeTripValueOne) { // one-way
+            setOptionValueElementById(idDropdownFrom, '');
+            setOptionValueElementById(idDropdownTo, '');
+        }
+    });
+    
+    
+    // change Dropdown From    
+    $("#"+idDropdownFrom).change(function () {
+        // allow dropdown "To" (with valids options) when "From" is selected
+        var valueSelectedInFrom = $('#'+idDropdownFrom).val();
+        if(valueSelectedInFrom!==''){
+            onlyShowOptionsWithDepCodeByElementId(idDropdownTo, valueSelectedInFrom); // hide not allow options for "To"
+            enableElementById(idDropdownTo); // allow dropdown "To"
+            setOptionValueElementById(idDropdownTo, ''); // reset "to" to option 0
+        }
+    });  
+    
+    
+    /**
+     * 
+     * @param {string} id
+     * @returns {void}
+     */
+    function enableElementById(id){
+        $('#'+id).removeAttr('disabled');
+    }    
+    
+    /**
+     * 
+     * @param {string} id
+     * @param {string} optionValue
+     * @returns {void}
+     */
+    function setOptionValueElementById(id, optionValue){
+        $("#"+id).val(optionValue);
+    }
+    
+    /**
+     * Hide options of dropdown with id idDropdown that data-depcode is different
+     * of depCode
+     * @param {string} idDropdown
+     * @param {string} depCode
+     * @returns {void}
+     */
+    function onlyShowOptionsWithDepCodeByElementId(idDropdown, depCode){        
+        $('#'+idDropdown).children('option').hide(); // hide all
+        $('#'+idDropdown).children('option[data-depcode="'+depCode+'"]').show(); // show only with depCode
+    }
+});
+</script> 

@@ -34,14 +34,34 @@ return [
                     ],
                 ],
             ],
+            'flightreservation' => [
+                'type' => Segment::class,
+                'options' => [
+                    'route' => '/flightreservation[/:action]',
+                    'constraints' => [
+                        'action' => '[a-zA-Z][a-zA-Z0-9_-]*'
+                    ],
+                    'defaults' => [
+                        'controller' => Controller\FlightReservationController::class,
+                        'action' => 'index',
+                    ],
+                ],
+            ],
         ],
     ],
     'controllers' => [
         'factories' => [
             Controller\IndexController::class => InvokableFactory::class,
+            Controller\FlightReservationController::class => Controller\Factory\FlightReservationControllerFactory::class,
         ],
     ],
+    'session_containers' => [
+        'UserFlightReservation'
+    ],    
     'view_manager' => [
+        'strategies' => [
+           'ViewJsonStrategy', /* allow correct JsonModel response (ajax reponses, for example) */
+        ],
         'display_not_found_reason' => true,
         'display_exceptions'       => true,
         'doctype'                  => 'HTML5',
