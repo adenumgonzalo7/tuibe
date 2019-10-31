@@ -91,7 +91,7 @@ class FlightReservationForm extends Form {
          ]);     
         
         // Add "from" field
-        $allDepartureAirports = $this->getAllUniqueDepartureAirportsValueOptions();        
+        $allDepartureAirports = $this->getAllUniqueDepartureAirportsValueOptionsWithExtraInfo();        
         $this->add([
             'type' => 'select',
             'name' => 'from',
@@ -351,20 +351,62 @@ class FlightReservationForm extends Form {
             ]);
     }
     
+    
+    /**
+     * Get all unique departura airports value options, and add extra info
+     * @return array
+     */
+    private function getAllUniqueDepartureAirportsValueOptionsWithExtraInfo(){
+        $result = [];
+        $uniqueDepartureAirports = $this->getAllUniqueDepartureAirportsValueOptions();
+        foreach($uniqueDepartureAirports as $code => $label){
+            $hasAtLeastOneRoundTrip = $this->hasAtLeastOneRoundTrip($code) ? 1 : 0;
+            $option['label'] = $label;
+            $option['value'] = $code;
+            $option['attributes'] = ['data-hasatleastoneroundtrip'=>$hasAtLeastOneRoundTrip];
+            $result[] = $option;
+        }
+        return $result;
+    }
+    
+    /**
+     * One airport X has at leat one Round-trip if it has at least one destination
+     * than has a flight with destination this airport X
+     * @param string $code
+     */
+    private function hasAtLeastOneRoundTrip($code){  
+        $flightRoutes = $this->getFlightRoutes();
+        $retCodesOfCode = []; // todos sus destinos
+        $allFlights = []; // todas las conexiones
+         
+        foreach($flightRoutes as $flightRoute){          
+            $depCode = $flightRoute['DepCode'];
+            $retCode = $flightRoute['RetCode'];
+ 
+            $allFlights[$depCode][$retCode] = 1;
+            if($depCode==$code){
+                $retCodesOfCode[] = $retCode;
+            }
+        }
+
+        // para cada destino, busco si hay un origen igual al code original
+        foreach($retCodesOfCode as $retCodeOfCode){
+            if(isset($allFlights[$retCodeOfCode][$code])){
+                return true;
+            }
+        }
+        return false;
+    }
+    
     /**
      * 
      * @return array
      */
     private function getAllUniqueDepartureAirportsValueOptions(){
-        $result = [];
+        $result = []; 
+        $flightRoutes = $this->getFlightRoutes();
         
-        if(!$this->flightRoutes){
-            $flightRoutesApi = new FlightRoutes();            
-            $flightRoutes = $flightRoutesApi->getAll();            
-            $this->flightRoutes = $flightRoutes;
-        }
-        
-        foreach($this->flightRoutes as $flightRoute){
+        foreach($flightRoutes as $flightRoute){
             $depCode = $flightRoute['DepCode'];
             $depName = $flightRoute['DepName'];
             $depCountry = $flightRoute['DepCountry'];            
@@ -373,39 +415,12 @@ class FlightReservationForm extends Form {
         return $result;
     }
     
-    /**
-     * 
-     * @return array
-     */
-    /*
+
     private function getAllDestinationAirportsValueOptions(){
-        $result = [];
+        $result = [];     
+        $flightRoutes = $this->getFlightRoutes();
         
-        if(!$this->flightRoutes){
-            $flightRoutesApi = new FlightRoutes();            
-            $flightRoutes = $flightRoutesApi->getAll();            
-            $this->flightRoutes = $flightRoutes;
-        }
-        
-        foreach($this->flightRoutes as $flightRoute){
-            $code = $flightRoute['RetCode'];
-            $name = $flightRoute['RetName'];
-            $country = $flightRoute['RetCountry'];            
-            $result[$code] = $code . ' - ' . $name . ' ('.$country.')';
-        }
-        
-        return $result;
-    }*/
-    private function getAllDestinationAirportsValueOptions(){
-        $result = [];
-        
-        if(!$this->flightRoutes){
-            $flightRoutesApi = new FlightRoutes();            
-            $flightRoutes = $flightRoutesApi->getAll();            
-            $this->flightRoutes = $flightRoutes;
-        }
-        
-        foreach($this->flightRoutes as $flightRoute){
+        foreach($flightRoutes as $flightRoute){
             $depCode = $flightRoute['DepCode'];
             $code = $flightRoute['RetCode'];
             $name = $flightRoute['RetName'];
@@ -420,13 +435,30 @@ class FlightReservationForm extends Form {
         
         return $result;
     }
-           
-        /*
-        vamos a recorrer salidas todos y los devolvemos como:
-            [
+    
+    /**
+     * 
+     * @return array
+     * Exmple:
+     *      [
                 "AGP" => "AGP - M\u00e1laga Airport (Spain)",
                 "AKK" => "AKK - Bla (Bla)" // aki no poner OST pq solo son salidas
             ]
+     */
+    private function getFlightRoutes(){
+        $result = $this->flightRoutes;
+        if(empty($result)){                  
+            $flightRoutesApi = new FlightRoutes();            
+            $flightRoutes = $flightRoutesApi->getAll();            
+            $this->flightRoutes = $flightRoutes;
+            $result = $flightRoutes;
+        }
+        return $result;
+    }
+           
+        /*
+        vamos a recorrer salidas todos y los devolvemos como:
+
                 
         Las llegadas las ponemos todas tb en otro array aparte, pero por JS habra que controlarlo creo yo :P  o por AJAX, no se...      
          * 
