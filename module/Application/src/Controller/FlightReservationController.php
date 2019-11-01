@@ -2,9 +2,10 @@
 
 namespace Application\Controller;
 
+use Application\Form\FlightReservationForm;
+use Application\Services\FlightSchedules;
 use Zend\Mvc\Controller\AbstractActionController;
 use Zend\View\Model\ViewModel;
-use Application\Form\FlightReservationForm;
 use Zend\View\Model\JsonModel;
 
 /**
@@ -14,7 +15,7 @@ use Zend\View\Model\JsonModel;
  * steps.
  */
 class FlightReservationController extends AbstractActionController {
-
+    
     /**
      * Session container.
      * @var Zend\Session\Container
@@ -110,19 +111,77 @@ class FlightReservationController extends AbstractActionController {
         ]);
     }
 
+    /**
+     * Process the AJAX calls of Form
+     */
     public function ajaxAction(){
-        $tmp = $this->params()->fromPost();
-       
-        //$view = new ViewModel([
-        //    'menuId' => $tmp,
-        //]);
-        //print_r($tmp);
-        //die($tmp);
-        //$view->setTemplate('layout/layout');
-        //$view->setTerminal(true);
-        //return $view;
-        $a = [$tmp];
-        return new JsonModel($a); 
+        $result = [];
+        $post = $this->params()->fromPost();
+        
+        // if more than one ajax call, refactor with abstract factory
+        if(isset($post['action']) && $post['action']=='getFlightSchedules'){               
+            $fromCode = $post['fromCode'] ?? '';
+            $toCode = $post['toCode'] ?? '';
+            $return = $post['hasReturn'] ?? 0;
+            $result = $this->getFlightSchedulesForDatepickers($fromCode, $toCode, $return);
+        }
+
+        return new JsonModel($result); 
     }
     
+    private function getFlightSchedulesForDatepickers($fromCode, $toCode, $return): array
+    {
+        $flightSchedules = $this->getFlightSchedules($fromCode, $toCode, $return);
+        $result = $this->formatFlightSchedulesForDatepickers($flightSchedules);        
+        return $result;
+    }
+    
+    private function getFlightSchedules(string $fromCode, string $toCode, int $return){
+        $flightSchedules = new FlightSchedules();
+        $flightSchedules->setFromCode($fromCode);
+        $flightSchedules->setToCode($toCode);
+        $flightSchedules->setHasReturn($return);                    
+        $result = $flightSchedules->get();           
+        return $result;
+    }
+    
+    /**
+     * Format the result for Datepickers, removing old dates
+     * @param array $flightSchedules
+     */
+    private function formatFlightSchedulesForDatepickers(array $flightSchedules){
+        $departureDates = [];
+        $returnDates = [];        
+        
+        if(isset($flightSchedules['OUT']) && is_array($flightSchedules['OUT'])){
+            $departureDates = $this->getRealDatesFlightSchedules($flightSchedules['OUT']);              
+        }
+        if(isset($flightSchedules['RET']) && is_array($flightSchedules['RET'])){
+            $returnDates = $this->getRealDatesFlightSchedules($flightSchedules['RET']);            
+        }          
+        
+        $result = [
+            'departureDates' => $departureDates,
+            'returnDates' => $returnDates,
+        ];        
+        return $result;     
+    }
+    
+    /**
+     * Return the dates (removing older than today)
+     * @param array
+     * @return array
+     */
+    private function getRealDatesFlightSchedules(array $flightSchedules): array
+    {
+        $result = [];
+        $dateNow = date('Y-m-d');
+        foreach($flightSchedules as $flightSchedule){
+            $dateFlight = $flightSchedule['date'];
+            if($dateFlight >= $dateNow){ //@todo better throught Datetime...
+                $result[] = $dateFlight;
+            }            
+        } 
+        return $result;
+    }
 }

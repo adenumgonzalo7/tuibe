@@ -4,6 +4,7 @@ namespace Application\Form;
 
 use Application\Services\FlightRoutes;
 use Zend\Form\Form;
+use Zend\Form\Element;
 use Zend\InputFilter\InputFilter;
 
 /**
@@ -86,7 +87,8 @@ class FlightReservationForm extends Form {
                 ],
             ],
             'attributes' => [
-                'value' => '2' // This set the opt 2 as selected when form is rendered
+                'value' => '2', // This set the opt 2 as selected when form is rendered
+                'id' => 'oneway_or_roundtrip',
             ]
          ]);     
         
@@ -118,6 +120,38 @@ class FlightReservationForm extends Form {
                 'value_options' => $allDestinationAirports
             ],         
         ]);
+        
+        // Add "fromdate" field
+        $this->add([
+            'type' => 'text',
+            'name' => 'departure-date',
+            'attributes' => [
+                'id' => 'departure-date',
+                'class' => 'form-control',
+                'placeholder' => 'Departure',
+                'disabled' => 'disabled' // This set the opt 2 as selected when form is rendered
+            ],
+            'options' => [
+                'label' => 'Mobile Phone',
+            ],
+        ]);   
+        
+        // Add "fromdate" field
+        $this->add([
+            'type' => 'text',
+            'name' => 'return-date',
+            'attributes' => [
+                'id' => 'return-date',
+                'class' => 'form-control',
+                'placeholder' => 'Return',
+                'disabled' => 'disabled' // This set the opt 2 as selected when form is rendered
+            ],
+            'options' => [
+                'label' => 'Mobile Phone',
+            ],
+        ]);         
+
+
     }
     
     private function addElementsStep2(){
@@ -363,7 +397,7 @@ class FlightReservationForm extends Form {
             $hasAtLeastOneRoundTrip = $this->hasAtLeastOneRoundTrip($code) ? 1 : 0;
             $option['label'] = $label;
             $option['value'] = $code;
-            $option['attributes'] = ['data-hasatleastoneroundtrip'=>$hasAtLeastOneRoundTrip];
+            $option['attributes'] = ['data-hassomereturn'=>$hasAtLeastOneRoundTrip];
             $result[] = $option;
         }
         return $result;

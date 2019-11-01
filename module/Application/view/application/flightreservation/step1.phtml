@@ -27,17 +27,26 @@ $form->prepare();
         </div>        
         
         <div class="form-group">
-            <?php //$this->formLabel($form->get('billing_plan')); ?>
             <?= $this->formElement($form->get('from')); ?>
             <?= $this->formElementErrors($form->get('from')); ?>                              
         </div>
 
         <div class="form-group">
-            <?php //$this->formLabel($form->get('payment_method')); ?>
             <?= $this->formElement($form->get('to')); ?>
             <?= $this->formElementErrors($form->get('to')); ?>                              
         </div>
+       
+        <div class="form-group">
+            <?= $this->formElement($form->get('departure-date')); ?>
+            <?= $this->formElementErrors($form->get('departure-date')); ?>                              
+        </div>     
+        
+        <div class="form-group">
+            <?= $this->formElement($form->get('return-date')); ?>
+            <?= $this->formElementErrors($form->get('return-date')); ?>                              
+        </div>          
 
+        
         <div class="form-group">
             <?= $this->formElement($form->get('submit')); ?>
         </div>
@@ -53,38 +62,25 @@ $form->prepare();
 $(document).ready(function(){
     var idDropdownFrom = 'from';
     var idDropdownTo = 'to';
-    var nameRadiobuttonTypeTrip = 'oneway_or_roundtrip';
+    var idDepartureDate = 'departure-date';
+    var idReturnDate = 'return-date';
+    var idRadiobuttonTypeTrip = 'oneway_or_roundtrip';
+    var nameRadiobuttonTypeTrip = 'oneway_or_roundtrip';    
     var radiobuttonTypeTripValueRound = '1';
     var radiobuttonTypeTripValueOne = '2';
-
-
-    var data={};
-    data.id = "bye";
-    $.ajax({
-        type : 'POST',
-        url  :'flightreservation/ajax',      
-        data :data,
-        success: function (data) {
-            console.log(data);
-            //alert(data);
-        },
-        error: function (data) {
-            console.log(data);
-
-        }
-    });
+    availableDepartureDates = []; // global
+    availableReturnDates = []; // global
     
     
     // change Radiobutton - One way / Round Trip
-    $('input[type=radio][name='+nameRadiobuttonTypeTrip+']').change(function() {
-
-        if (this.value == radiobuttonTypeTripValueRound) { // round
-            setOptionValueElementById(idDropdownFrom, '');
-            setOptionValueElementById(idDropdownTo, '');
+    $('input[type=radio][name='+nameRadiobuttonTypeTrip+']').change(function() {        
+        if (this.value == radiobuttonTypeTripValueRound) { // round-trip
+            resetFlightReservationForm(); // reset all form
+            onlyShowOptionsWithSomeReturnByElementId(idDropdownFrom); // Dropdown TO only shows airports with return to itself
         }
         else if (this.value == radiobuttonTypeTripValueOne) { // one-way
-            setOptionValueElementById(idDropdownFrom, '');
-            setOptionValueElementById(idDropdownTo, '');
+            setOptionValueElementById(idReturnDate, '');
+            disableElementById(idReturnDate);
         }
     });
     
@@ -95,20 +91,113 @@ $(document).ready(function(){
         var valueSelectedInFrom = $('#'+idDropdownFrom).val();
         if(valueSelectedInFrom!==''){
             onlyShowOptionsWithDepCodeByElementId(idDropdownTo, valueSelectedInFrom); // hide not allow options for "To"
-            enableElementById(idDropdownTo); // allow dropdown "To"
             setOptionValueElementById(idDropdownTo, ''); // reset "to" to option 0
+            enableElementById(idDropdownTo); // allow dropdown "To"            
         }
     });  
+
+    // change values on Dropdown To    
+    $("#"+idDropdownTo).change(function () {
+        setFlightSchedulesToDatepickers();        
+    });   
     
+    initDepartureDatesDatepicker([]);
+    initReturnDatesDatepicker([]);
+    
+    function initDepartureDatesDatepicker(dates){
+        var idDatepicker = 'departure-date';
+        availableDepartureDates = dates;
+        
+        $( "#"+idDatepicker).datepicker("destroy"); // to sure reset
+        $( "#"+idDatepicker).datepicker({
+            dateFormat: "dd-mm-yy",
+            beforeShowDay: getAvailableDepartureDates 
+        });         
+    }
+    
+    function initReturnDatesDatepicker(dates){
+        var idDatepicker = 'return-date';
+        availableReturnDates = dates;
+        
+        $( "#"+idDatepicker).datepicker("destroy"); // to sure reset
+        $( "#"+idDatepicker).datepicker({
+            dateFormat: "dd-mm-yy",
+            beforeShowDay: getAvailableReturnDates 
+        }); 
+    }
+    
+
+    
+    function resetFlightReservationForm(){
+        setDefaultValuesElementsFlightReservationForm();
+        setDefaultEnablingElementsFlightReservationForm();
+
+    }
+    
+    function setDefaultValuesElementsFlightReservationForm(){
+        setOptionValueElementById(idDropdownFrom, '');
+        setOptionValueElementById(idDropdownTo, '');   
+        setOptionValueElementById(idDepartureDate, '');
+        setOptionValueElementById(idReturnDate, '');                 
+    }
+
+    function setDefaultEnablingElementsFlightReservationForm(){
+        disableElementById(idDropdownTo);
+        disableElementById(idDepartureDate);
+        disableElementById(idReturnDate);
+    }
     
     /**
      * 
+     * @param {Date} date
+     * @returns {Array}
+     */
+    function getAvailableDepartureDates(date) {
+        return getAvailableDates(availableDepartureDates, date);
+    }
+    
+    /**
+     * 
+     * @param {Date} date
+     * @returns {Array}
+     */
+    
+    function getAvailableReturnDates(date) {
+        return getAvailableDates(availableReturnDates, date);
+    }    
+    
+    /**
+     * ej ["17-10-2019","18-10-2019","19-10-2019"];
+     * @param {Array} availableDates
+     * @param {Date} date
+     * @returns {Array}
+     */
+    function getAvailableDates(availableDates, date){        
+        dateFormatted =   date.getFullYear()+ "-" + (date.getMonth()+1) + "-" + date.getDate();
+        if ($.inArray(dateFormatted, availableDates) != -1) {
+            return [true, "","Available"];
+        } else {
+            return [false,"","unAvailable"];
+        }
+    }
+    
+    /**
+     * Enable the element
      * @param {string} id
      * @returns {void}
      */
     function enableElementById(id){
         $('#'+id).removeAttr('disabled');
-    }    
+    }  
+    
+    /**
+     * Dsiable the element
+     * @param {string} id
+     * @returns {void}
+     */
+    function disableElementById(id){
+        $('#'+id).attr('disabled', 'true');
+    }      
     
     /**
      * 
@@ -118,6 +207,14 @@ $(document).ready(function(){
      */
     function setOptionValueElementById(id, optionValue){
         $("#"+id).val(optionValue);
+    }
+    
+    function getValueElementById(id){
+        return $("#"+id).val();
+    }    
+    
+    function getRadioButtonCheckedByName(name){
+        return $("input[name='"+name+"']:checked").val();
     }
     
     /**
@@ -131,5 +228,65 @@ $(document).ready(function(){
         $('#'+idDropdown).children('option').hide(); // hide all
         $('#'+idDropdown).children('option[data-depcode="'+depCode+'"]').show(); // show only with depCode
     }
+
+    /**
+     * Dropdown TO only shows airports with return to itself (data-hassomereturn="1">)
+     * @param {string} idDropdown
+     * @returns {void}
+     */
+    function onlyShowOptionsWithSomeReturnByElementId(idDropdown){        
+        $('#'+idDropdown).children('option').hide(); // hide all
+        $('#'+idDropdown).children('option[data-hassomereturn="1"]').show();
+    }        
+    
+    function setFlightSchedulesToDatepickers(){
+        var fromCode = getValueElementById(idDropdownFrom);
+        var toCode = getValueElementById(idDropdownTo);
+        var hasReturn = 0;        
+        if(isRoundTripRadiobuttonSelected()){
+            hasReturn = 1;
+        }
+
+        var data = {
+            action : 'getFlightSchedules',
+            fromCode : fromCode,
+            toCode : toCode,
+            hasReturn : hasReturn
+        };
+        data.id = "bye";
+        $.ajax({
+            type : 'POST',
+            url  :'flightreservation/ajax',      
+            data :data,
+            success: function (data) {
+                flightSchedulesResultProcess(data);
+            },
+            error: function (data) {
+                // console.log(data);
+                alert("ERROR WHEN RECOVERY ALLOW DATES. @todo Bootstrap Modal to show Error to Customer");
+            }
+        });
+    }
+    
+    function isRoundTripRadiobuttonSelected(){
+        return getRadioButtonCheckedByName(nameRadiobuttonTypeTrip)===radiobuttonTypeTripValueRound;
+    }
+     
+    function flightSchedulesResultProcess(dates){        
+        if(!dates.departureDates){
+            alert("ERROR WHEN LOAD ALLOW DATES. @todo Bootstrap Modal to show Error to Customer");
+            return;
+        }
+                
+        initDepartureDatesDatepicker(dates.departureDates); // OUT: load the allow dates
+        enableElementById(idDepartureDate);   // OUT: enable the datepicker
+                
+        if(isRoundTripRadiobuttonSelected() && dates.returnDates){
+            initReturnDatesDatepicker(dates.returnDates); // RET: load the allow dates 
+            enableElementById(idReturnDate); // RET: enable the datepickers         
+        } 
+    }
+ 
+    
 });
 </script> 

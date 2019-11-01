@@ -15,6 +15,7 @@ class FlightApi {
     const PATH_FLIGHT_SCHEDULES = 'api/json/1F/flightschedules/';
     const PATH_FLIGHT_AVAILABILITY = 'api/json/1F/flightavailability/';
 
+    private $authClient;
     private $path;
 
     public function __construct(string $path) {
@@ -28,18 +29,50 @@ class FlightApi {
     private function getPath() {
         return $this->path;
     }
+    
+    private function setAuthRestClient($value) {
+        $this->authClient = $value;
+    }
 
-    public function get() {
+    private function getAuthRestClient() {
+        return $this->authClient;
+    }    
+
+    /**
+     * Get the Auth Rest Client necessary for the calls in the instance
+     * Its generated if doesnot exist yet
+     * @return RestClient
+     */
+    private function authRestClient(){
+        $client = $this->getAuthRestClient();
+        if(!empty($client)){
+            return $client;
+        }
+        
         $username = self::USERNAME;
         $password = self::PASSWORD;
         $protocol = self::PROTOCOL;
         $domain = self::DOMAIN;
-        $path = $this->getPath();
 
         $urlWithAuth = $protocol . '://' . $username . ':' . $password . '@' . $domain;
         $client = new RestClient($urlWithAuth);
         $client->setUri($urlWithAuth);
-        $response = $client->restGet($path);
+        
+        $this->setAuthRestClient($client);
+        
+        return $client;
+    }
+    
+    /**
+     * Call Get 
+     * @param array $query - parameters
+     * @return array
+     */
+    protected function restGet($query = []) {
+        $path = $this->getPath();
+        $client = $this->authRestClient();
+
+        $response = $client->restGet($path, $query);
         $responseArray = json_decode($response->getBody(), true);
 
         return $responseArray;
