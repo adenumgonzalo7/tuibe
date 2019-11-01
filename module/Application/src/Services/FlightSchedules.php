@@ -4,6 +4,8 @@ namespace Application\Services;
 
 class FlightSchedules extends FlightApi{
     
+    const RESPONSE_INDEX = 'flightschedules';
+    
     private $fromCode; 
     private $toCode;
     private $hasReturn;
@@ -60,7 +62,7 @@ class FlightSchedules extends FlightApi{
         }        
         
         $response = parent::restGet($queryParams);        
-        return $response['flightschedules'];
+        return $response[self::RESPONSE_INDEX];
     }
     
     /**

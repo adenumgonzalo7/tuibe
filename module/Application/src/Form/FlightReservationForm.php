@@ -6,6 +6,7 @@ use Application\Services\FlightRoutes;
 use Zend\Form\Form;
 use Zend\Form\Element;
 use Zend\InputFilter\InputFilter;
+use Zend\Form\Element\Radio as ZendFormElementRadio;
 
 /**
  * This form is used to collect user registration data. This form is multi-step.
@@ -17,12 +18,15 @@ class FlightReservationForm extends Form {
     const STEP_1 = 1;
     const STEP_2 = 2;
     
+    const MAX_SEATS_TO_SHOW = 10;
+    
     private $flightRoutes;
+    private $extraData;
 
     /**
      * Constructor.     
      */
-    public function __construct($step) {
+    public function __construct($step, $extraData = []) {
         // Check input.
         if (!is_int($step) || $step < self::STEP_1 || $step > self::STEP_2)
             throw new \Exception('Step is invalid');
@@ -32,9 +36,19 @@ class FlightReservationForm extends Form {
 
         // Set POST method for this form
         $this->setAttribute('method', 'post');
-
+        
+        $this->setExtraData($extraData);
         $this->addElements($step);
         $this->addInputFilter($step);
+        
+    }
+    
+    public function setExtraData(array $value) {       
+        $this->extraData = $value;        
+    }
+
+    public function getExtraData() {    
+        return $this->extraData;
     }
 
     /**
@@ -87,7 +101,7 @@ class FlightReservationForm extends Form {
                 ],
             ],
             'attributes' => [
-                'value' => '2', // This set the opt 2 as selected when form is rendered
+                'value' => '2', // This set the opt 2 as selected when form is rendered                
                 'id' => 'oneway_or_roundtrip',
             ]
          ]);     
@@ -99,6 +113,7 @@ class FlightReservationForm extends Form {
             'name' => 'from',
             'attributes' => [
                 'id' => 'from',
+                'class' => 'form-control',
             ],
             'options' => [
                 'empty_option' => 'From',
@@ -113,6 +128,7 @@ class FlightReservationForm extends Form {
             'name' => 'to',
             'attributes' => [
                 'id' => 'to',
+                'class' => 'form-control',
                 'disabled' => 'disabled' // This set the opt 2 as selected when form is rendered
             ],
             'options' => [
@@ -131,9 +147,6 @@ class FlightReservationForm extends Form {
                 'placeholder' => 'Departure',
                 'disabled' => 'disabled' // This set the opt 2 as selected when form is rendered
             ],
-            'options' => [
-                'label' => 'Mobile Phone',
-            ],
         ]);   
         
         // Add "fromdate" field
@@ -146,101 +159,102 @@ class FlightReservationForm extends Form {
                 'placeholder' => 'Return',
                 'disabled' => 'disabled' // This set the opt 2 as selected when form is rendered
             ],
-            'options' => [
-                'label' => 'Mobile Phone',
-            ],
         ]);         
 
+        // Add "num_adults" field
+        $this->add([
+            'type' => 'select',
+            'name' => 'num_adults',
+            'attributes' => [
+                'id' => 'num_adults',
+                'class' => 'form-control',
+            ],
+            'options' => [                               
+                'value_options' => [
+                    '1' => '1 Adult',
+                    '2' => '2 Adults',
+                    '3' => '3 Adults',
+                    '4' => '4 Adults',                 
+                ],
+            ],
+        ]);
+            
+        // Add "num_children" field
+        $this->add([
+            'type' => 'select',
+            'name' => 'num_children',
+            'attributes' => [
+                'id' => 'num_children',
+                'class' => 'form-control',
+            ],
+            'options' => [                       
+                'value_options' => [
+                    '0' => '0 Children',
+                    '1' => '1 Children',
+                    '2' => '2 Children',
+                    '3' => '3 Children',
+                    '4' => '4 Children',              
+                ],
+            ],
+        ]);
+        
+            
+        // Add "num_babies" field
+        $this->add([
+            'type' => 'select',
+            'name' => 'num_babies',
+            'attributes' => [
+                'id' => 'num_babies',
+                'class' => 'form-control',
+            ],
+            'options' => [                       
+                'value_options' => [
+                    '0' => '0 Babies',
+                    '1' => '1 Baby',
+                    '2' => '2 Babies',
+                    '3' => '3 Babies',
+                    '4' => '4 Babies',              
+                ],
+            ],
+        ]);          
 
     }
     
     private function addElementsStep2(){
-        // Add "phone" field
-        $this->add([
-            'type' => 'text',
-            'name' => 'phone',
-            'attributes' => [
-                'id' => 'phone'
-            ],
-            'options' => [
-                'label' => 'Mobile Phone',
-            ],
-        ]);
+        
+        $extraData = $this->getExtraData();
+        //@todo adapter is need. This data income from WS Flight Availability directly        
+        $availableDeparturesValueOptions = $this->getFlightsValueOptionsWithExtraInfo($extraData['OUT'], 'departure'); 
+        
 
-        // Add "street_address" field
         $this->add([
-            'type' => 'text',
-            'name' => 'street_address',
-            'attributes' => [
-                'id' => 'street_address'
-            ],
+            'type' => 'radio',
+            'name' => 'available_departure_time',
             'options' => [
-                'label' => 'Street address',
+                'value_options' => $availableDeparturesValueOptions,              
             ],
-        ]);
-
-        // Add "city" field
+            'attributes' => [
+                'value' => '', // This set the opt 2 as selected when form is rendered                                
+                'class'=> "js-radiobutton_departure"
+            ]
+         ]);     
+        
+        $availableReturnValueOptions = [];
+        if(!empty($extraData['RET'])){
+            $availableReturnValueOptions = $this->getFlightsValueOptionsWithExtraInfo($extraData['RET'], 'return'); 
+        }
+        
         $this->add([
-            'type' => 'text',
-            'name' => 'city',
-            'attributes' => [
-                'id' => 'city'
-            ],
+            'type' => 'radio',
+            'name' => 'available_return_time',
             'options' => [
-                'label' => 'City',
+                'value_options' => $availableReturnValueOptions,              
             ],
-        ]);
-
-        // Add "state" field
-        $this->add([
-            'type' => 'text',
-            'name' => 'state',
             'attributes' => [
-                'id' => 'state'
-            ],
-            'options' => [
-                'label' => 'State',
-            ],
-        ]);
-
-        // Add "post_code" field
-        $this->add([
-            'type' => 'text',
-            'name' => 'post_code',
-            'attributes' => [
-                'id' => 'post_code'
-            ],
-            'options' => [
-                'label' => 'Post Code',
-            ],
-        ]);
-
-        // Add "country" field
-        $this->add([
-            'type' => 'select',
-            'name' => 'country',
-            'attributes' => [
-                'id' => 'country',
-            ],
-            'options' => [
-                'label' => 'Country',
-                'empty_option' => '-- Please select --',
-                'value_options' => [
-                    'US' => 'United States',
-                    'CA' => 'Canada',
-                    'BR' => 'Brazil',
-                    'GB' => 'Great Britain',
-                    'FR' => 'France',
-                    'IT' => 'Italy',
-                    'DE' => 'Germany',
-                    'RU' => 'Russia',
-                    'IN' => 'India',
-                    'CN' => 'China',
-                    'AU' => 'Australia',
-                    'JP' => 'Japan'
-                ],
-            ],
-        ]);
+                'value' => '', // This set the opt 2 as selected when form is rendered                                
+                'class'=> "js-radiobutton_return"
+            ]
+         ]);         
     }
     
     
@@ -267,20 +281,9 @@ class FlightReservationForm extends Form {
             'required' => true,
             'filters' => [
             ],
-            'validators' => [
-                [
-                    'name' => 'InArray',
-                    'options' => [
-                        'haystack' => [
-                            'Free',
-                            'Bronze',
-                            'Silver',
-                            'Gold',
-                            'Platinum'
-                        ]
-                    ]
-                ]
-            ],
+            'validators' => [ //@todo change for "InArray" with possible values
+                ['name' => 'StringLength', 'options' => ['min' => 1, 'max' => 10]]
+            ],  
         ]);
 
         // Add input for "To" field
@@ -289,100 +292,55 @@ class FlightReservationForm extends Form {
             'required' => true,
             'filters' => [
             ],
+            'validators' => [ //@todo change for "InArray" with possible values
+                ['name' => 'StringLength', 'options' => ['min' => 1, 'max' => 10]]
+            ],            
+        ]);
+        
+        $inputFilter->add([
+            'name' => 'num_adults',
+            'required' => true,
+            'filters' => [],
             'validators' => [
-                [
-                    'name' => 'InArray',
-                    'options' => [
-                        'haystack' => [
-                            'PayPal',
-                            'Visa',
-                            'MasterCard',
-                        ]
-                    ]
-                ]
+                ['name' => 'IsInt'],
+                ['name' => 'Between', 'options' => ['min' => 1, 'max' => 4]]
             ],
         ]);
+        
+        $inputFilter->add([
+            'name' => 'num_children',
+            'required' => true,
+            'filters' => [],
+            'validators' => [
+                ['name' => 'IsInt'],
+                ['name' => 'Between', 'options' => ['min' => 0, 'max' => 4]]
+            ],
+        ]); 
+        
+        $inputFilter->add([
+            'name' => 'num_babies',
+            'required' => true,
+            'filters' => [],
+            'validators' => [
+                ['name' => 'IsInt'],
+                ['name' => 'Between', 'options' => ['min' => 0, 'max' => 4]]
+            ],
+        ]);         
+        
     }
     
     private function addInputFilterStep2($inputFilter){
-
-            $inputFilter->add([
-                'name' => 'phone',
-                'required' => true,
-                'filters' => [
-                ],
-                'validators' => [
-                    [
-                        'name' => 'StringLength',
-                        'options' => [
-                            'min' => 3,
-                            'max' => 32
-                        ],
-                    ],
-                ],
-            ]);
-
-            // Add input for "street_address" field
-            $inputFilter->add([
-                'name' => 'street_address',
-                'required' => true,
-                'filters' => [
-                    ['name' => 'StringTrim'],
-                ],
-                'validators' => [
-                    ['name' => 'StringLength', 'options' => ['min' => 1, 'max' => 255]]
-                ],
-            ]);
-
-            // Add input for "city" field
-            $inputFilter->add([
-                'name' => 'city',
-                'required' => true,
-                'filters' => [
-                    ['name' => 'StringTrim'],
-                ],
-                'validators' => [
-                    ['name' => 'StringLength', 'options' => ['min' => 1, 'max' => 255]]
-                ],
-            ]);
-
-            // Add input for "state" field
-            $inputFilter->add([
-                'name' => 'state',
-                'required' => true,
-                'filters' => [
-                    ['name' => 'StringTrim'],
-                ],
-                'validators' => [
-                    ['name' => 'StringLength', 'options' => ['min' => 1, 'max' => 32]]
-                ],
-            ]);
-
-            // Add input for "post_code" field
-            $inputFilter->add([
-                'name' => 'post_code',
-                'required' => true,
-                'filters' => [
-                ],
-                'validators' => [
-                    ['name' => 'IsInt'],
-                    ['name' => 'Between', 'options' => ['min' => 0, 'max' => 999999]]
-                ],
-            ]);
-
-            // Add input for "country" field
-            $inputFilter->add([
-                'name' => 'country',
-                'required' => false,
-                'filters' => [
-                    ['name' => 'Alpha'],
-                    ['name' => 'StringTrim'],
-                    ['name' => 'StringToUpper'],
-                ],
-                'validators' => [
-                    ['name' => 'StringLength', 'options' => ['min' => 2, 'max' => 2]]
-                ],
-            ]);
+       
+        $inputFilter->add([
+            'name' => 'available_departure_time',
+            'required' => true,
+        ]);    
+        
+        $inputFilter->add([
+            'name' => 'available_return_time',
+            'required' => true,
+        ]);         
+   
     }
     
     
@@ -476,7 +434,7 @@ class FlightReservationForm extends Form {
      * Exmple:
      *      [
                 "AGP" => "AGP - M\u00e1laga Airport (Spain)",
-                "AKK" => "AKK - Bla (Bla)" // aki no poner OST pq solo son salidas
+                "AKK" => "AKK - Bla (Bla)" 
             ]
      */
     private function getFlightRoutes(){
@@ -489,27 +447,151 @@ class FlightReservationForm extends Form {
         }
         return $result;
     }
-           
-        /*
-        vamos a recorrer salidas todos y los devolvemos como:
+    
+    
+    /**
+     * 
+     * @param array $flights - The OUT flights availability data
+     * Sample:
 
-                
-        Las llegadas las ponemos todas tb en otro array aparte, pero por JS habra que controlarlo creo yo :P  o por AJAX, no se...      
-         * 
-         */
-        /*
-           {
-         "DepCode":"AGP",
-         "RetCode":"OST",
-         "DepName":"M\u00e1laga Airport",
-         "RetName":"Ostend\u2013Bruges International Airport",
-         "DepCountry":"Spain",
-         "RetCountry":"Belgium"
-      },
-         */
+        Array
+        (
+            [0] => Array
+                (
+                    [date] => 2019-11-11
+                    [aircrafttype] => Boeing
+                    [datetime] => 2019-11-11T11:18:00
+                    [price] => 68
+                    [seatsAvailable] => 8
+                    [depart] => Array
+                        (
+                            [airport] => Array
+                                (
+                                    [code] => AGP
+                                    [name] => Málaga Airport
+                                )
+
+                        )
+
+                    [arrival] => Array
+                        (
+                            [airport] => Array
+                                (
+                                    [code] => FRA
+                                    [name] => Frankfurt Airport
+                                )
+
+                        )
+
+                )
+
+            [1] => Array
+                (
+                    [date] => 2019-11-11
+                    [aircrafttype] => Boeing
+                    [datetime] => 2019-11-11T13:52:00
+                    [price] => 74
+                    [seatsAvailable] => 15
+                    [depart] => Array
+                        (
+                            [airport] => Array
+                                (
+                                    [code] => AGP
+                                    [name] => Málaga Airport
+                                )
+
+                        )
+
+                    [arrival] => Array
+                        (
+                            [airport] => Array
+                                (
+                                    [code] => FRA
+                                    [name] => Frankfurt Airport
+                                )
+
+                        )
+
+                )
+
+        )
+
+     * 
+     * 
+       @return array
+        Sample:  [
+        [
+            'value' => '0',
+            'label' => 'Apple',
+            'selected' => false,
+            'disabled' => false,
+            'attributes' => [
+                'id' => 'apple_option',                            
+            ],
+            'label_attributes' => [
+                'class' => 'list-group-item js-radiocomponent_departure',
+                'data-for_id' => 'apple_option',
+            ]
+       ],
+       [               
+            'value' => '1',
+            'label' => 'Orange',
+            'selected' => false,
+            'disabled' => false,
+            'attributes' => [
+                'id' => 'orange_option',
+            ],
+            'label_attributes' => [
+                'class' => 'list-group-item  js-radiocomponent_departure',
+                'data-for_id' => 'orange_option',
+            ]
+       ], 
+     */
+    private function getFlightsValueOptionsWithExtraInfo($flights, $type){
+        $result = [];
         
-        
-        
+        $cont = 0;
+        foreach($flights as $flight){
+            $idFlight = $type.$cont;
             
+            $label = $this->getRadiobuttonLabel($flight);
+            $element['value'] = $cont;
+            $element['label'] = $label;
+            $element['selected'] = false;
+            $element['disabled'] = false;
+            $element['attributes']['id'] = $idFlight;
+            $element['label_attributes']['class'] = 'list-group-item  js-radiocomponent_'.$type;
+            $element['label_attributes']['id'] = 'js-radiolabel_'.$type.'_'.$cont;
+            $element['label_attributes']['data-for_id'] = $idFlight;                        
+            $cont++;
+            $result[] = $element;
+        }        
+        return $result;
+    }
+           
+    /**
+     * @todo make decorator for radiobuttom group, and i could put html elements
+     * 
+     * in text
+     * @param array $flight
+     * @return array
+     */
+    private function getRadiobuttonLabel($flight){
+        $datetimeDeparture = $flight['datetime'];                        
+        $timeDeparture = date("H:i", strtotime($datetimeDeparture));
+        // $datetimeArrival = $flight['datetime']; //@todo Where is arrival datetime???      
+        $price = $flight['price'];
+        $priceFormatted = '€'.number_format($price, 2, ',', '.');
+        $seats = $flight['seatsAvailable'];
+        
+        $result = $flight['depart']['airport']['name']. ' '.$timeDeparture.' -> ' . $flight['arrival']['airport']['name'];
+        $result .= ' ('.$priceFormatted.')';
+        
+        if($seats < self::MAX_SEATS_TO_SHOW){
+            $result .= ' [Only '.$seats.' tickets at '.$priceFormatted.']';
+        }        
+  
+        return $result;
+    }
 
 }

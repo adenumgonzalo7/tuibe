@@ -1,85 +1,136 @@
 <?php
 $this->headTitle('Step 2 - Choose a flight');
 
-$form->get('phone')->setAttributes([
-    'class'=>'form-control', 
-    'placeholder'=>'Phone number in international format'
-    ]);
-
-$form->get('street_address')->setAttributes([
-    'class'=>'form-control', 
-    ]);
-
-$form->get('city')->setAttributes([
-    'class'=>'form-control', 
-    ]);
-
-$form->get('state')->setAttributes([
-    'class'=>'form-control',
-    ]);
-
-$form->get('post_code')->setAttributes([
-    'class'=>'form-control', 
-    ]);
-
-$form->get('country')->setAttributes([
-    'class'=>'form-control'
-    ]);
-
-$form->get('submit')->setAttributes(array('class'=>'btn btn-primary'));
+$form->get('submit')->setAttributes(array('class' => 'btn btn-primary'));
 
 $form->prepare();
 ?>
 
-<h1>Flightt Reservation - Step 2 - Choose a flight</h1>
+<h1>Flight Reservation - Step 2 - Choose a flight</h1>
+
+TODO: style, <br>
 
 <div class="row">
     <div class="col-md-6">
         <?= $this->form()->openTag($form); ?>
+
+        <div class="list-group">
+            <?= $this->formElement($form->get('available_departure_time')); ?>
+        </div>                
+
+        <div class="list-group">
+            <?= $this->formElement($form->get('available_return_time')); ?>
+        </div>        
         
         <div class="form-group">
-            <?= $this->formLabel($form->get('phone')); ?>
-            <?= $this->formElement($form->get('phone')); ?>
-            <?= $this->formElementErrors($form->get('phone')); ?>                              
+            <?= $this->formElement($form->get('submit')); ?>
         </div>
-        
-        <div class="form-group">
-            <?= $this->formLabel($form->get('street_address')); ?>
-            <?= $this->formElement($form->get('street_address')); ?>
-            <?= $this->formElementErrors($form->get('street_address')); ?>                              
-        </div>
-        
-        <div class="form-group">
-            <?= $this->formLabel($form->get('city')); ?>
-            <?= $this->formElement($form->get('city')); ?>
-            <?= $this->formElementErrors($form->get('city')); ?>                              
-        </div>
-        
-        <div class="form-group">
-            <?= $this->formLabel($form->get('state')); ?>
-            <?= $this->formElement($form->get('state')); ?>
-            <?= $this->formElementErrors($form->get('state')); ?>                              
-        </div>
-        
-        <div class="form-group">
-            <?= $this->formLabel($form->get('post_code')); ?>
-            <?= $this->formElement($form->get('post_code')); ?>
-            <?= $this->formElementErrors($form->get('post_code')); ?>                              
-        </div>
-        
-        <div class="form-group">
-            <?= $this->formLabel($form->get('country')); ?>
-            <?= $this->formElement($form->get('country')); ?>
-            <?= $this->formElementErrors($form->get('country')); ?>                              
-        </div>
-        
-        <div class="form-group">
-        <?= $this->formElement($form->get('submit')); ?>
-        </div>
-        
+
         <?= $this->formElement($form->get('csrf')); ?>
-        
+
         <?= $this->form()->closeTag(); ?>
-    </div>    
-</div>   
+    </div>        
+    
+</div>    
+
+<script>
+
+    $(document).ready(function () {
+        radioComponentDeparturesClass = 'js-radiocomponent_departure'; //global
+        radioButtonDeparturesClass = 'js-radiobutton_departure'; //global
+
+        radioComponentReturnsClass = 'js-radiocomponent_return'; //global
+        radioButtonReturnsClass = 'js-radiobutton_return'; //global
+
+        // @todo refactor this init
+        $('#js-radiolabel_departure_0').addClass('radioCustomSelected');
+        
+        if($("#js-radiolabel_return_0").length !== 0) {
+            $('#js-radiolabel_return_0').addClass('radioCustomSelected');
+        }
+
+        $("." + radioComponentDeparturesClass).click(function (event) {
+            event.preventDefault();
+            
+            resetCheckedDeparturesRadioButtons(); // reset all
+            checkRadiobutton(this); //check only this
+            
+            console.log(this);
+        });
+        
+        $("." + radioComponentReturnsClass).click(function (event) {
+            event.preventDefault();
+            
+            resetCheckedReturnsRadioButtons(); // reset all
+            checkRadiobutton(this); //check only this
+            
+            //console.log(this);
+        });
+
+        function checkRadiobutton(radioButtonElem) {            
+            $(radioButtonElem).addClass('radioCustomSelected');
+            var idRadiobutton = $(radioButtonElem).data('for_id');           
+            $('#' + idRadiobutton).attr('checked', 'checked');            
+        }
+
+        function resetCheckedDeparturesRadioButtons() {
+            removeCheckedRadioButtonsByClass(radioButtonDeparturesClass);
+            removeCheckStyleRadioComponentByClass(radioComponentDeparturesClass);
+        }
+
+        function resetCheckedReturnsRadioButtons() {
+            removeCheckedRadioButtonsByClass(radioButtonReturnsClass);
+            removeCheckStyleRadioComponentByClass(radioComponentReturnsClass);
+        }
+
+
+        function removeCheckedRadioButtonsByClass(className){
+             $('.' + className).removeAttr('checked');
+        }
+
+        function removeCheckStyleRadioComponentByClass(className){
+             $('.' + className).removeClass('radioCustomSelected');
+        }
+
+    });
+</script>    
+
+
+
+<?php /* @todo move to .css file */ ?>
+<style>
+    .radioCustomSelected{
+        border-color: blue;
+        background-color: #87CEFA;
+    }
+
+
+    .list-group-item {
+        user-select: none;
+    }
+
+    .list-group input[type="radio"] {
+        display: none;
+    }
+
+    .list-group input[type="radio"] + .list-group-item {
+        cursor: pointer;
+    }
+
+    .list-group input[type="radio"] + .list-group-item:before {
+        content: "\2022";
+        color: transparent;
+        font-weight: bold;
+        margin-right: 1em;
+    }
+
+    .list-group input[type="radio"]:checked + .list-group-item {
+        background-color: #0275D8;
+        color: #FFF;
+    }
+
+    .list-group input[type="radio"]:checked + .list-group-item:before {
+        color: inherit;
+    }    
+</style>    
 

@@ -1,9 +1,14 @@
 <?php
 
+/**
+ * @todo: Adapters for all WS calls
+ */
+
 namespace Application\Controller;
 
 use Application\Form\FlightReservationForm;
 use Application\Services\FlightSchedules;
+use Application\Services\FlightAvailability;
 use Zend\Mvc\Controller\AbstractActionController;
 use Zend\View\Model\ViewModel;
 use Zend\View\Model\JsonModel;
@@ -34,58 +39,61 @@ class FlightReservationController extends AbstractActionController {
      * User Registration page.
      */
     public function indexAction() {
-
+        // $extraData is used to pass response data WS to form
+        $extraData = [];
+        
         // Determine the current step.
         $step = FlightReservationForm::STEP_1;
         if (isset($this->sessionContainer->step)) {
             $step = $this->sessionContainer->step;
         }
-
         // Ensure the step is correct (between 1 and 2).
         if ($step < FlightReservationForm::STEP_1 || $step > FlightReservationForm::STEP_2){
             $step = FlightReservationForm::STEP_1;   
         }
+        
         if ($step == FlightReservationForm::STEP_1) {
             // Init user choices.
             $this->sessionContainer->userChoices = [];
+            
+        } else if($step == FlightReservationForm::STEP_2){
+            $formDataStep1 =  $this->sessionContainer->userChoices["step".FlightReservationForm::STEP_1];        
+            $departureDate = $formDataStep1['departure-date'] ?? ''; 
+            $returnDate = $formDataStep1['return-date'] ?? '';   // if !='' is round-trip    
+            $departureCode = $formDataStep1['from'] ?? '';       
+            $destinationCode = $formDataStep1['to'] ?? '';      
+            $extraData = $this->getAvailableFlightOnDates($departureCode, $destinationCode, $departureDate, $returnDate);
+//print_r($extraData);
+//die("asd1");
         }
-
-        $form = new FlightReservationForm($step);
+        
+        $form = new FlightReservationForm($step, $extraData);
 
         // Check if user has submitted the form
         if ($this->getRequest()->isPost()) {
-
             // Fill in the form with POST data
             $data = $this->params()->fromPost();
-
             $form->setData($data);
 
             // Validate form
             if ($form->isValid()) {
-
                 // Get filtered and validated data
                 $data = $form->getData();
-
                 // Save user choices in session.
                 $this->sessionContainer->userChoices["step$step"] = $data;
-
                 // Increase step
                 $step ++;
                 $this->sessionContainer->step = $step;
-
                 // If we completed all 3 steps, redirect to Review page.
                 if ($step > FlightReservationForm::STEP_2) {
                     return $this->redirect()->toRoute('flightreservation', ['action' => 'review']);
                 }
-
                 // Go to the next step.
                 return $this->redirect()->toRoute('flightreservation');
             }
         }
 
-        $viewModel = new ViewModel([
-            'form' => $form
-        ]);
+        $viewModel = new ViewModel(['form' => $form]);
         $viewModel->setTemplate("application/flightreservation/step$step");
 
         return $viewModel;
@@ -106,9 +114,7 @@ class FlightReservationController extends AbstractActionController {
         // Retrieve user choices from session.
         $userChoices = $this->sessionContainer->userChoices;
 
-        return new ViewModel([
-            'userChoices' => $userChoices
-        ]);
+        return new ViewModel(['userChoices' => $userChoices]);
     }
 
     /**
@@ -129,7 +135,7 @@ class FlightReservationController extends AbstractActionController {
         return new JsonModel($result); 
     }
     
-    private function getFlightSchedulesForDatepickers($fromCode, $toCode, $return): array
+    private function getFlightSchedulesForDatepickers($fromCode, $toCode, $return)
     {
         $flightSchedules = $this->getFlightSchedules($fromCode, $toCode, $return);
         $result = $this->formatFlightSchedulesForDatepickers($flightSchedules);        
@@ -172,7 +178,7 @@ class FlightReservationController extends AbstractActionController {
      * @param array
      * @return array
      */
-    private function getRealDatesFlightSchedules(array $flightSchedules): array
+    private function getRealDatesFlightSchedules(array $flightSchedules)
     {
         $result = [];
         $dateNow = date('Y-m-d');
@@ -184,4 +190,35 @@ class FlightReservationController extends AbstractActionController {
         } 
         return $result;
     }
+    
+    /**
+     * 
+     * @param string $departureCode
+     * @param string $destinationCode
+     * @param string $departureDate
+     * @param string $returnDate
+     * @return array
+     */
+    private function getAvailableFlightOnDates(
+            string $departureCode, 
+            string $destinationCode, 
+            string $departureDate, 
+            string $returnDate){
+                
+        $flights = new FlightAvailability();
+        $flights->setDepartureAirport($departureCode);
+        $flights->setDestinationAirport($destinationCode);
+        $flights->setDepartureDate($departureDate);          
+        
+        if($returnDate){
+            $flights->setReturnDepartureAirport($destinationCode);
+            $flights->setReturnDestinationAirport($departureCode);
+            $flights->setReturnDate($returnDate);  
+        }
+
+        $result = $flights->get();           
+        return $result;
+    }
+  
+    
 }

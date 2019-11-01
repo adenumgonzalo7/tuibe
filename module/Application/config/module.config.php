@@ -36,7 +36,7 @@ return [
             ],
             'flightreservation' => [
                 'type' => Segment::class,
-                'options' => [
+                'options' => [ 
                     'route' => '/flightreservation[/:action]',
                     'constraints' => [
                         'action' => '[a-zA-Z][a-zA-Z0-9_-]*'

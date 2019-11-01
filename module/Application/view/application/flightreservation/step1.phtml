@@ -1,14 +1,6 @@
 <?php
 $this->headTitle('Step 1 - Search a flight');
 
-$form->get('from')->setAttributes([
-    'class' => 'form-control',
-]);
-
-$form->get('to')->setAttributes([
-    'class' => 'form-control',
-]);
-
 $form->get('submit')->setAttributes(array('class' => 'btn btn-primary'));
 
 $form->prepare();
@@ -20,8 +12,7 @@ $form->prepare();
     <div class="col-md-6">
         <?= $this->form()->openTag($form); ?>
 
-        <div class="form-group">
-           
+        <div class="form-group">           
             <?= $this->formElement($form->get('oneway_or_roundtrip')); ?>
             <?= $this->formElementErrors($form->get('oneway_or_roundtrip')); ?>                              
         </div>        
@@ -46,6 +37,20 @@ $form->prepare();
             <?= $this->formElementErrors($form->get('return-date')); ?>                              
         </div>          
 
+        <div class="form-group">
+            <?= $this->formElement($form->get('num_adults')); ?>
+            <?= $this->formElementErrors($form->get('num_adults')); ?>                              
+        </div>       
+        
+        <div class="form-group">
+            <?= $this->formElement($form->get('num_children')); ?>
+            <?= $this->formElementErrors($form->get('num_children')); ?>                              
+        </div>       
+        
+        <div class="form-group">
+            <?= $this->formElement($form->get('num_babies')); ?>
+            <?= $this->formElementErrors($form->get('num_babies')); ?>                              
+        </div>               
         
         <div class="form-group">
             <?= $this->formElement($form->get('submit')); ?>
@@ -110,7 +115,7 @@ $(document).ready(function(){
         
         $( "#"+idDatepicker).datepicker("destroy"); // to sure reset
         $( "#"+idDatepicker).datepicker({
-            dateFormat: "dd-mm-yy",
+            dateFormat: "yy-mm-dd",
             beforeShowDay: getAvailableDepartureDates 
         });         
     }
