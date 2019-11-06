@@ -8,8 +8,6 @@ $form->prepare();
 
 <h1>Flight Reservation - Step 2 - Choose a flight</h1>
 
-TODO: style, <br>
-
 <div class="row">
     <div class="col-md-6">
         <?= $this->form()->openTag($form); ?>
@@ -33,6 +31,7 @@ TODO: style, <br>
     
 </div>    
 
+<?php /* @todo move to .js file */ ?>
 <script>
 
     $(document).ready(function () {
@@ -43,11 +42,12 @@ TODO: style, <br>
         radioButtonReturnsClass = 'js-radiobutton_return'; //global
 
         // @todo refactor this init
+        /*
         $('#js-radiolabel_departure_0').addClass('radioCustomSelected');
         
         if($("#js-radiolabel_return_0").length !== 0) {
             $('#js-radiolabel_return_0').addClass('radioCustomSelected');
-        }
+        }*/
 
         $("." + radioComponentDeparturesClass).click(function (event) {
             event.preventDefault();

@@ -76,6 +76,69 @@ class FlightAvailability extends FlightApi{
     /**
      * @todo Validations
      * @return array
+     * 
+     * Example:
+            Array
+            (
+                [flights] => Array
+                    (
+                        [OUT] => Array
+                            (
+                                [0] => Array
+                                    (
+                                        [date] => 2019-11-11
+                                        [aircrafttype] => Boeing
+                                        [datetime] => 2019-11-11T11:18:00
+                                        [price] => 68
+                                        [seatsAvailable] => 8
+                                        [depart] => Array
+                                            (
+                                                [airport] => Array
+                                                    (
+                                                        [code] => AGP
+                                                        [name] => Málaga Airport
+                                                    )
+
+                                            )
+                                        [arrival] => Array
+                                            (
+                                                [airport] => Array
+                                                    (
+                                                        [code] => FRA
+                                                        [name] => Frankfurt Airport
+                                                    )
+                                            )
+                                    )
+                                [1] => Array
+                                    (
+                                        [date] => 2019-11-11
+                                        [aircrafttype] => Boeing
+                                        [datetime] => 2019-11-11T13:52:00
+                                        [price] => 74
+                                        [seatsAvailable] => 15
+                                        [depart] => Array
+                                            (
+                                                [airport] => Array
+                                                    (
+                                                        [code] => AGP
+                                                        [name] => Málaga Airport
+                                                    )
+
+                                            )
+                                        [arrival] => Array
+                                            (
+                                                [airport] => Array
+                                                    (
+                                                        [code] => FRA
+                                                        [name] => Frankfurt Airport
+                                                    )
+                                            )
+                                    )
+                            )
+                    )
+
+            )
+     * 
      */
     public function get() {
     
@@ -106,12 +169,7 @@ class FlightAvailability extends FlightApi{
         if($retDate){            
             $queryParams['returndate'] = $retDate;        
         }        
-        
-        
-        
         $response = parent::restGet($queryParams);        
-//print_r($response);
-//die("dieeeeeeeee1");
         return $response[self::RESPONSE_INDEX];
     }
         

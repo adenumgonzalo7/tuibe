@@ -15,41 +15,54 @@ use Zend\Form\Element\Radio as ZendFormElementRadio;
  */
 class FlightReservationForm extends Form {
     
+    const STEP = 'step';
     const STEP_1 = 1;
     const STEP_2 = 2;
     
     const MAX_SEATS_TO_SHOW = 10;
+    const INDEX_CHOSEN_FLIGHT = 'chosenFlight';
     
     private $flightRoutes;
-    private $extraData;
+    private $flightAvailability;
+    private $userChoices;
 
     /**
      * Constructor.     
      */
-    public function __construct($step, $extraData = []) {
+    public function __construct($step, $userFormChoices, $flightAvailability = []) {
         // Check input.
-        if (!is_int($step) || $step < self::STEP_1 || $step > self::STEP_2)
+        if (!is_int($step) || $step < self::STEP_1 || $step > self::STEP_2){
             throw new \Exception('Step is invalid');
-
+        }
+            
         // Define form name
         parent::__construct('flightreservation-form');
 
         // Set POST method for this form
-        $this->setAttribute('method', 'post');
+        $this->setAttribute('method', 'post');      
+        $this->setFlightAvailability($flightAvailability);
+        $this->setUserChoices($userFormChoices);
         
-        $this->setExtraData($extraData);
         $this->addElements($step);
         $this->addInputFilter($step);
         
     }
     
-    public function setExtraData(array $value) {       
-        $this->extraData = $value;        
+    private function setFlightAvailability(array $value) {       
+        $this->flightAvailability = $value;        
     }
 
-    public function getExtraData() {    
-        return $this->extraData;
+    private function getFlightAvailability() {    
+        return $this->flightAvailability;
     }
+    
+    private function setUserChoices(array $value) {       
+        $this->userChoices = $value;        
+    }
+
+    private function getUserChoices() {    
+        return $this->userChoices;
+    }    
 
     /**
      * This method adds elements to form (input fields and submit button).
@@ -222,7 +235,7 @@ class FlightReservationForm extends Form {
     
     private function addElementsStep2(){
         
-        $extraData = $this->getExtraData();
+        $extraData = $this->getFlightAvailability();
         //@todo adapter is need. This data income from WS Flight Availability directly        
         $availableDeparturesValueOptions = $this->getFlightsValueOptionsWithExtraInfo($extraData['OUT'], 'departure'); 
         
@@ -329,18 +342,30 @@ class FlightReservationForm extends Form {
         
     }
     
-    private function addInputFilterStep2($inputFilter){
-       
+    /**
+     * 
+     * @param InputFilter $inputFilter
+     */
+    private function addInputFilterStep2($inputFilter){       
         $inputFilter->add([
             'name' => 'available_departure_time',
             'required' => true,
         ]);    
-        
+                
+        $userChoices = $this->getUserChoices();
+        $availableReturnTimeRequired = self::returnDateWasChosenInStep1($userChoices); 
         $inputFilter->add([
             'name' => 'available_return_time',
-            'required' => true,
-        ]);         
-   
+            'required' => $availableReturnTimeRequired,
+        ]);                     
+    }
+    
+    /**
+     * If return-date was chosen in step1      
+     * @return bool
+     */
+    public static function returnDateWasChosenInStep1($userChoices){
+        return $userChoices[self::STEP.self::STEP_1]['return-date']!='';
     }
     
     
@@ -470,7 +495,6 @@ class FlightReservationForm extends Form {
                                     [code] => AGP
                                     [name] => Málaga Airport
                                 )
-
                         )
 
                     [arrival] => Array
@@ -480,9 +504,7 @@ class FlightReservationForm extends Form {
                                     [code] => FRA
                                     [name] => Frankfurt Airport
                                 )
-
                         )
-
                 )
 
             [1] => Array
@@ -499,7 +521,6 @@ class FlightReservationForm extends Form {
                                     [code] => AGP
                                     [name] => Málaga Airport
                                 )
-
                         )
 
                     [arrival] => Array
@@ -509,11 +530,8 @@ class FlightReservationForm extends Form {
                                     [code] => FRA
                                     [name] => Frankfurt Airport
                                 )
-
                         )
-
                 )
-
         )
 
      * 
@@ -555,7 +573,7 @@ class FlightReservationForm extends Form {
             $idFlight = $type.$cont;
             
             $label = $this->getRadiobuttonLabel($flight);
-            $element['value'] = $cont;
+            $element['value'] = self::getUniqueIdentifierAvailableFlight($flight);
             $element['label'] = $label;
             $element['selected'] = false;
             $element['disabled'] = false;
@@ -568,7 +586,47 @@ class FlightReservationForm extends Form {
         }        
         return $result;
     }
-           
+          
+    
+    /**
+     * Generate a unique identifier of flight 
+     * @param array $flight
+        Example:
+            Array
+            (
+                [date] => 2019-11-21
+                [aircrafttype] => Boeing
+                [datetime] => 2019-11-21T08:09:00
+                [price] => 329
+                [seatsAvailable] => 27
+                [depart] => Array
+                    (
+                        [airport] => Array
+                            (
+                                [code] => AGP
+                                [name] => Málaga Airport
+                            )
+
+                    )
+
+                [arrival] => Array
+                    (
+                        [airport] => Array
+                            (
+                                [code] => BRU
+                                [name] => Brussels Airport
+                            )
+
+                    )
+
+            )
+     */
+    public static function getUniqueIdentifierAvailableFlight(array $flight){
+        return $flight['depart']['airport']['code'].'-'.$flight['arrival']['airport']['code'].'|'.
+                $flight['aircrafttype'].'|'.
+                $flight['datetime'];
+    }
+    
     /**
      * @todo make decorator for radiobuttom group, and i could put html elements
      * 
@@ -576,7 +634,7 @@ class FlightReservationForm extends Form {
      * @param array $flight
      * @return array
      */
-    private function getRadiobuttonLabel($flight){
+    private function getRadiobuttonLabel(array $flight){
         $datetimeDeparture = $flight['datetime'];                        
         $timeDeparture = date("H:i", strtotime($datetimeDeparture));
         // $datetimeArrival = $flight['datetime']; //@todo Where is arrival datetime???      

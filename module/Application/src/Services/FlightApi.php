@@ -56,8 +56,7 @@ class FlightApi {
 
         $urlWithAuth = $protocol . '://' . $username . ':' . $password . '@' . $domain;
         $client = new RestClient($urlWithAuth);
-        $client->setUri($urlWithAuth);
-        
+        $client->setUri($urlWithAuth);        
         $this->setAuthRestClient($client);
         
         return $client;
@@ -71,10 +70,13 @@ class FlightApi {
     protected function restGet($query = []) {
         $path = $this->getPath();
         $client = $this->authRestClient();
-
-        $response = $client->restGet($path, $query);
-        $responseArray = json_decode($response->getBody(), true);
-
+        try {
+            $response = $client->restGet($path, $query);
+            $responseArray = json_decode($response->getBody(), true);            
+        } catch (\Throwable $ex) {
+            // log "no data for $path.$query"
+            $responseArray = [];
+        }
         return $responseArray;
     }
 
