@@ -20,8 +20,7 @@ class FlightReservationForm extends Form {
     const STEP_2 = 2;
     
     const MAX_SEATS_TO_SHOW = 10;
-    const INDEX_CHOSEN_FLIGHT = 'chosenFlight';
-    
+
     private $flightRoutes;
     private $flightAvailability;
     private $userChoices;

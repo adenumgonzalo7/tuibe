@@ -21,6 +21,9 @@ use Zend\View\Model\JsonModel;
  */
 class FlightReservationController extends AbstractActionController {
     
+    const INDEX_STEP_1 = FlightReservationForm::STEP.FlightReservationForm::STEP_1;
+    const INDEX_STEP_2 = FlightReservationForm::STEP.FlightReservationForm::STEP_2;
+    
     /**
      * Session container.
      * @var Zend\Session\Container
@@ -44,12 +47,12 @@ class FlightReservationController extends AbstractActionController {
      
         // Determine the current step.
         $step = $this->getActualStep();
-        
+
         if ($step == FlightReservationForm::STEP_1) {
             // Init user choices.
             $this->sessionContainer->userChoices = [];            
         } else if($step == FlightReservationForm::STEP_2){   
-            $formDataStep1 =  $this->sessionContainer->userChoices[FlightReservationForm::STEP.FlightReservationForm::STEP_1];          
+            $formDataStep1 =  $this->sessionContainer->userChoices[self::INDEX_STEP_1];          
             $flighAvailability = $this->getAvailableFlightOnDatesByFlightFormData($formDataStep1);
         }
         
@@ -80,15 +83,46 @@ class FlightReservationController extends AbstractActionController {
             throw new \Exception('Sorry, the data is not available for review yet');
         }
 
+        $userChoices = $this->getReviewActionUserChoices();
+        
+        return new ViewModel(['userChoices' => $userChoices]);
+    }
+        
+    /**
+     * Process the AJAX calls of Form
+     */
+    public function ajaxAction(){
+        $result = [];
+        $post = $this->params()->fromPost();        
+        // if more than one ajax call, refactor with abstract factory
+        if(isset($post['action']) && $post['action']=='getFlightSchedules'){               
+            $fromCode = $post['fromCode'] ?? '';
+            $toCode = $post['toCode'] ?? '';
+            $return = $post['hasReturn'] ?? 0;
+            $result = $this->getFlightSchedulesForDatepickers($fromCode, $toCode, $return);
+        }
+        return new JsonModel($result); 
+    }
+        
+    /**
+     * Retrieve user choices from session for step Review, updated with the
+     * actual info from WS
+     * @return array
+     * @throws \Exception
+     */
+    private function getReviewActionUserChoices(){
         // Retrieve user choices from session.
         $userChoices = $this->sessionContainer->userChoices;
+        $step2Index = FlightReservationForm::STEP.FlightReservationForm::STEP_2;        
+        $priceReturn = 0;
         
         // get the available flight date in realtime, if it is available yet.         
-        $formDataStep1 =  $this->sessionContainer->userChoices[FlightReservationForm::STEP.FlightReservationForm::STEP_1];  
-        $formDataStep2 =  $this->sessionContainer->userChoices[FlightReservationForm::STEP.FlightReservationForm::STEP_2];  
+        $formDataStep1 =  $this->sessionContainer->userChoices[self::INDEX_STEP_1];  
+        $formDataStep2 =  $this->sessionContainer->userChoices[self::INDEX_STEP_2];  
         $departureFlightId = $formDataStep2['available_departure_time'];
         $availableDepartureFlight = $this->getAvailableDepartureFlightOnDatesById($formDataStep1, $departureFlightId);   
-        $userChoices[FlightReservationForm::STEP.FlightReservationForm::STEP_2][FlightReservationForm::INDEX_CHOSEN_FLIGHT]['departure'] = $availableDepartureFlight;
+        $availableDepartureFlight = $this->getFormattedAvailableFlight($availableDepartureFlight);
+        $userChoices[$step2Index]['departure'] = $availableDepartureFlight;
         if(empty($availableDepartureFlight)){
             throw new \Exception('Sorry, the flight is not available');
         }
@@ -97,34 +131,30 @@ class FlightReservationController extends AbstractActionController {
         if(FlightReservationForm::returnDateWasChosenInStep1($userChoices)){
             // get the available flight date in realtime, if it is available yet.         
             $returnFlightId = $formDataStep2['available_return_time'];
-            $availableDepartureFlight = $this->getAvailableReturnFlightOnDatesById($formDataStep1, $returnFlightId);   
-            $userChoices[FlightReservationForm::STEP.FlightReservationForm::STEP_2][FlightReservationForm::INDEX_CHOSEN_FLIGHT]['return'] = $availableDepartureFlight;            
-            if(empty($availableDepartureFlight)){
+            $availableReturnFlight = $this->getAvailableReturnFlightOnDatesById($formDataStep1, $returnFlightId);   
+            $availableReturnFlight = $this->getFormattedAvailableFlight($availableReturnFlight);
+            $userChoices[$step2Index]['return'] = $availableReturnFlight;            
+            if(empty($availableReturnFlight)){
                 throw new \Exception('Sorry, the flight is not available');
-            }            
+            } 
         }
         
-        return new ViewModel(['userChoices' => $userChoices]);
+        $totalPrice = $this->getPriceFlight($userChoices);
+        $userChoices[$step2Index]['total_price'] = $totalPrice;        
+        return $userChoices;
     }
-
-    /**
-     * Process the AJAX calls of Form
-     */
-    public function ajaxAction(){
-        $result = [];
-        $post = $this->params()->fromPost();
+    
+    private function getPriceFlight($userChoices){
+        $numMustPayPerson = $userChoices[self::INDEX_STEP_1]['num_adults'] + $userChoices[self::INDEX_STEP_1]['num_children'];
+        $outPrice = $userChoices[self::INDEX_STEP_2]['departure']['price'];
+        $retPrice = $userChoices[self::INDEX_STEP_2]['return']['price'] ?? 0;
         
-        // if more than one ajax call, refactor with abstract factory
-        if(isset($post['action']) && $post['action']=='getFlightSchedules'){               
-            $fromCode = $post['fromCode'] ?? '';
-            $toCode = $post['toCode'] ?? '';
-            $return = $post['hasReturn'] ?? 0;
-            $result = $this->getFlightSchedulesForDatepickers($fromCode, $toCode, $return);
-        }
-
-        return new JsonModel($result); 
+        $priceByPerson = $outPrice + $retPrice;        
+        $result = $priceByPerson * $numMustPayPerson;
+                
+        return $result;
     }
-        
+    
     /**
      * 
      * @return string
@@ -335,5 +365,65 @@ class FlightReservationController extends AbstractActionController {
         return $result;
     }
   
+    /**
+     * Decorator for available Flight
+     * @param array $availableFlight
+     *   Array (
+            [date] => 2019-11-28
+            [aircrafttype] => Boeing
+            [datetime] => 2019-11-28T06:24:00
+            [price] => 28
+            [duration] => 02:25:00
+            [seatsAvailable] => 8
+            [depart] => Array
+            (
+                [airport] => Array
+                (
+                    [code] => BRU
+                    [name] => Brussels Airport
+                )
+            )
+            [arrival] => Array
+            (
+                [airport] => Array
+               (
+                    [code] => OST
+                    [name] => Ostend–Bruges International Airport
+                )
+            )
+        )
+     */
+    public function getFormattedAvailableFlight(array $availableFlight){
+        $result = $availableFlight;
+        if(isset($availableFlight['date'])){
+            $result['dateFormatted'] = date("D. j M Y", strtotime($result['date']));
+        }
+        if(isset($availableFlight['datetime']) && isset($availableFlight['duration'])){
+            
+            $outTime = new \DateTime($availableFlight['datetime']);
+            $outTimeFormatted = $outTime->format('H:i');
+            
+            $durationDatetime = new \DateTime($availableFlight['duration']);
+            $retTime = $this->getSumDates($outTime, $durationDatetime);
+            $retTimeFormatted = $retTime->format('H:i');
+            
+            $result['outTime'] = $outTimeFormatted;
+            $result['retTime'] = $retTimeFormatted;
+        }        
+        return $result;
+    }
+    
+    /**
+     * 
+     * @param \Datetime $date
+     * @param \Datetime $datetoAdd
+     * @return type
+     */
+    private function getSumDates(\Datetime $date, \Datetime $datetoAdd) {
+        $secs = $datetoAdd->format('U'); 
+        $intervalFormat = 'PT'.$secs.'S';
+        $result = $date->add(new \DateInterval($intervalFormat));
+        return $result;
+    }
 
 }

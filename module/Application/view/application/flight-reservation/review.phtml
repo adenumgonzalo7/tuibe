@@ -1,11 +1,111 @@
-<?php
-$this->headTitle('Flight Reservation - Review');
-?>
+<?php $this->headTitle('Flight Reservation - Review'); ?>
 
 <h1>Flight Reservation - Overview</h1>
 
-<p>@todo: call FlightAvailability for recovery Flight selected in before step (hasnt identifier, must to create it -available_departure_time and available_return_time are the array indexes selected in radiobutton)</p>
+<div class="row">
+    <div class="col-md-6">
+        <div class="box" style="padding: 2rem;">
+            <div class="row">
+                <div class="col-xs-12 col-sm-4">
+                    <h3>Your flight</h3>                    
+                </div>            
+            </div>
+            <div class="row font-size-lg">
+                <div class="col-sm-12">
+                    <h4><i class="fa fa-plane-departure"></i> Outbound flight</h4>                                    
+                    <hr>
+                </div>                                            
+                <div class="col-sm-12"><?= $userChoices['step2']['departure']['dateFormatted']; ?></div>
+                <div class="col-sm-4"><?= $userChoices['step2']['departure']['depart']['airport']['name']; ?>
+                    <br>
+                    <?= $userChoices['step2']['departure']['outTime']; ?>
+                </div>
+                <div class="col-sm-4 font-size-xxl">
+                    <i class="fa fa-arrow-right"></i><br>
+                    <i class="fa fa-arrow-right"></i>
+                </div>
+                <div class="col-sm-4"><?= $userChoices['step2']['departure']['arrival']['airport']['name']; ?>
+                    <br>
+                    <?= $userChoices['step2']['departure']['retTime']; ?>
+                </div>
+                <div class="col-lg-offset-6 col-sm-6">
+                    <div class="pull-right">€ <?= $userChoices['step2']['departure']['price']; ?></div>
+                    <br>
+                    <div class="pull-right color-greytext">Price by person</div>                    
+                </div>
+            </div>
+            <?php if (!empty($userChoices['step2']['return'])) { ?>
+                <div class="row font-size-lg">
+                    <div class="col-sm-12">
+                        <h4><i class="fa fa-plane-departure"></i> Outbound flight</h4>                                    
+                        <hr>
+                    </div>                                            
+                    <div class="col-sm-12"><?= $userChoices['step2']['return']['dateFormatted']; ?></div>
+                    <div class="col-sm-4"><?= $userChoices['step2']['return']['depart']['airport']['name']; ?>
+                        <br>
+                        <?= $userChoices['step2']['return']['outTime']; ?>
+                    </div>
+                    <div class="col-sm-4 font-size-xxl">
+                        <i class="fa fa-arrow-right"></i><br>
+                        <i class="fa fa-arrow-right"></i>
+                    </div>
+                    <div class="col-sm-4"><?= $userChoices['step2']['return']['arrival']['airport']['name']; ?>
+                        <br>
+                        <?= $userChoices['step2']['return']['retTime']; ?>
+                    </div>
+                    <div class="col-lg-offset-6 col-sm-6">
+                        <div class="pull-right">€ <?= $userChoices['step2']['return']['price']; ?></div>
+                        <br>
+                        <div class="pull-right color-greytext">Price by person</div>                    
+                    </div>
+                </div>
+            <?php } ?>
+            <div class="row font-size-lg">
+                <div class="col-sm-12">
+                    <h4><i class="fa fa-users"></i> Passenger(s)</h4>                                    
+                    <hr>
+                </div>   
+                <div class="col-sm-12">
+                    <?= $userChoices['step1']['num_adults']; ?> Adults
+                    <?php echo $userChoices['step1']['num_children'] ? ', '.$userChoices['step1']['num_children'] . ' Children' : ''; ?>
+                    <?php echo $userChoices['step1']['num_babies'] ? ', '.$userChoices['step1']['num_babies'] . ' Babies' : ''; ?>
+                </div>                
+            </div>
+            
+            <hr>
+            <div class="row font-size-lg">
+                <div class="col-sm-6">
+                    <h3>TOTAL</h3>                                
+                </div>   
+                <div class="col-sm-6">
+                    <div class="pull-right color-blue font-size-huge">€ <?= $userChoices['step2']['total_price']; ?></div>
+                    <br><br>
+                    <div class="pull-right color-greytext">(Incl. airport tax)</div>                    
+                </div>
+            </div>
+        </div>        
+    </div> 
+</div>    
 
-<pre>
-    <?php print_r($userChoices); ?>
-</pre>
+
+<?php /* @todo: move to .css file */ ?>
+<style>
+    .box{
+        box-shadow: 0px 2px 3px 0px rgba(0,0,0,0.26);    
+    }    
+    .font-size-lg { 
+        font-size: 1.7rem; 
+    }
+    .font-size-xxl { 
+        font-size: 2.0rem; 
+    }    
+    .font-size-huge { 
+        font-size: 3.0rem; 
+    }       
+    .color-greytext{
+        color: graytext;
+    }
+    .color-blue{
+        color: #2aabd2;
+    }
+</style>    

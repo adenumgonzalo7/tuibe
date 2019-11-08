@@ -11,8 +11,9 @@ class FlightRoutes extends FlightApi{
     }
     
     public function getAll() {
-        $response = parent::restGet();        
-        return $response[self::RESPONSE_INDEX];
+        $response = parent::restGet();      
+        $result = $response[self::RESPONSE_INDEX] ?? [];
+        return $result;
     }
 
 }

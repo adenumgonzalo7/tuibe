@@ -3,6 +3,7 @@
 namespace Application\Services;
 
 use ZendRest\Client\RestClient;
+use Zend\Http\Client as HTTPClient;
 
 class FlightApi {
 
@@ -14,6 +15,8 @@ class FlightApi {
     const PATH_FLIGHT_ROUTES = 'api/json/1F/flightroutes/';
     const PATH_FLIGHT_SCHEDULES = 'api/json/1F/flightschedules/';
     const PATH_FLIGHT_AVAILABILITY = 'api/json/1F/flightavailability/';
+    
+    const TIMEOUT = 2;
 
     private $authClient;
     private $path;
@@ -56,9 +59,19 @@ class FlightApi {
 
         $urlWithAuth = $protocol . '://' . $username . ':' . $password . '@' . $domain;
         $client = new RestClient($urlWithAuth);
-        $client->setUri($urlWithAuth);        
+
+        // configure HttpClient form extra config (like timeout)
+        $httpclient = new HTTPClient();
+        $httpclient->setUri($urlWithAuth);
+        $httpclient->setOptions([
+            'maxredirects' => 0,
+            'timeout'      => self::TIMEOUT,
+        ]);
+        $client->setHttpClient($httpclient);
+
+        // $client->setUri($urlWithAuth);  // use HttpClient, and its set in it finally      
         $this->setAuthRestClient($client);
-        
+       
         return $client;
     }
     
